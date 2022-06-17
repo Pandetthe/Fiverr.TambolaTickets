@@ -8,43 +8,68 @@ namespace TambolaTickets
 {
     public class TambolaTicket
     {
-        private int[][] Entries { get; set; }
+        #region Entries
+        private int[][] Entries;
 
-        private int NumberOfEntries { get => Entries.Sum(row => row.Count(x => x != 0)); }
-
-        private bool IsCompleted { get => NumberOfEntries == 15; }
-
-        private int Number { get; set; }
-
-        public TambolaTicket(int number)
+        public void UpdateEntry(int row, int column, int value)
         {
-            Number = number;
-            Entries = new int[3][];
-            for (int i = 0; i < 3; i++)
-                Entries[i] = new int[9];
+            if (column < 0 || column >= 9) throw new Exception("Column index out of range");
+            if (row < 0 || row >= 3) throw new Exception("Row index out of range");
+            Entries[row][column] = value;
         }
 
-        private int[] GetColumnValues(int column)
+        public int[][] GetEntries() => Entries;
+
+        public int[] GetColumnValues(int column)
         {
             if (column < 0 || column >= 9) throw new Exception("Column index out of range");
             return Entries.Select(row => row[column]).ToArray();
         }
 
-        private int[] GetRowValues(int row)
+        public int[] GetRowValues(int row)
         {
             if (row < 0 || row >= 3) throw new Exception("Row index out of range");
             return Entries[row];
         }
+        #endregion Entries
 
         private bool IsRowCompleted(int row) => GetRowValues(row).Count(x => x != 0) == 5;
 
-        private bool IsColumnCompleted(int column) => GetColumnValues(column).Count(x => x != 0) == 3;
+        private readonly string NumberOfTicket;
 
-        private void UpdateEntry(int row, int column, int value)
+        public TambolaTicket(int numberOfTicket, Dictionary<int, List<int>> sortedNumbers)
         {
-            if (column < 0 || column >= 9) throw new Exception("Column index out of range");
-            if (row < 0 || row >= 3) throw new Exception("Row index out of range");
-            Entries[row][column] = value;
+            NumberOfTicket = numberOfTicket.ToString();
+            Entries = new int[3][];
+            for (int i = 0; i < 3; i++)
+                Entries[i] = new int[9];
+            InsertData(sortedNumbers);
+        }
+
+        private void InsertData(Dictionary<int, List<int>> sortedNumbers)
+        {
+            Random random = new(Guid.NewGuid().GetHashCode());
+            foreach (KeyValuePair<int, List<int>> numbers in sortedNumbers.Where(col => col.Value.Count == 3))
+                for (int row = 0; row < 3; row++)
+                    UpdateEntry(row, numbers.Key, numbers.Value[row]);
+            foreach (KeyValuePair<int, List<int>> numbers in sortedNumbers.Where(col => col.Value.Count == 2))
+            {
+                for (int index = 0; index < 2; index++)
+                {
+                    int row;
+                    do row = random.Next(0, 3);
+                    while (IsRowCompleted(row) || Entries[row][numbers.Key] != 0);
+                    UpdateEntry(row, numbers.Key, numbers.Value[index]);
+                }
+            }
+            foreach (KeyValuePair<int, List<int>> numbers in sortedNumbers.Where(col => col.Value.Count == 1))
+            {
+                int row;
+                do row = random.Next(0, 3);
+                while (IsRowCompleted(row) || Entries[row][numbers.Key] != 0);
+                UpdateEntry(row, numbers.Key, numbers.Value.First());
+            }
+            Sort();
         }
 
         private void Sort()
@@ -65,53 +90,10 @@ namespace TambolaTickets
             }
         }
 
-        public void Generate()
-        {
-            Random random = new(Guid.NewGuid().GetHashCode());
-            Dictionary<int, List<int>> numbers = new();
-            for (int i = 0; i < 9; i++)
-            {
-                numbers.Add(i, new List<int>());
-                for (int j = 0; j < 10; j++)
-                    numbers[i].Add(i * 10 + j + 1);
-            }
-            for (int col = 0; col < 9; col++)
-            {
-                int row;
-                do row = random.Next(0, 3);
-                while (!IsRowCompleted(row) && Entries[row][col] != 0);
-                int index = random.Next(0, numbers[col].Count);
-                UpdateEntry(row, col, numbers[col][index]);
-                numbers[col].RemoveAt(index);
-            }
-            void FillRecursively()
-            {
-                for (int row = 0; row < 3; row++)
-                {
-                    for (int col = 0; col < 9; col++)
-                    {
-                        if (random.NextDouble() <= 0.5 || IsCompleted || IsRowCompleted(row)
-                            || IsColumnCompleted(col) || Entries[row][col] != 0) continue;
-                        if (numbers[col].Count == 0) continue;
-                        int index = random.Next(0, numbers[col].Count);
-                        UpdateEntry(row, col, numbers[col][index]);
-                        numbers[col].RemoveAt(index);
-                    }
-                }
-                if (IsCompleted)
-                {
-                    Sort();
-                    return;
-                }
-                FillRecursively();
-            }
-            FillRecursively();
-        }
-
         public void Display()
         {
             Console.WriteLine(new string('-', 46));
-            Console.WriteLine($"| Tambola Ticket No: {Number}                       |");
+            Console.WriteLine($"| Tambola Ticket No: {NumberOfTicket}                       |");
             Console.WriteLine(new string('-', 46));
             for (int i = 0; i < 3; i++)
             {
