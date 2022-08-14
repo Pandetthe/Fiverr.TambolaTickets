@@ -37,16 +37,15 @@ namespace TambolaTickets
 
         private readonly string NumberOfTicket;
 
-        public TambolaTicket(int numberOfTicket, Dictionary<int, List<int>> sortedNumbers)
+        public TambolaTicket(int numberOfTicket)
         {
             NumberOfTicket = numberOfTicket.ToString();
             Entries = new int[3][];
             for (int i = 0; i < 3; i++)
                 Entries[i] = new int[9];
-            InsertData(sortedNumbers);
         }
 
-        private void InsertData(Dictionary<int, List<int>> sortedNumbers)
+        public bool InsertData(Dictionary<int, List<int>> sortedNumbers)
         {
             Random random = new(Guid.NewGuid().GetHashCode());
             foreach (KeyValuePair<int, List<int>> numbers in sortedNumbers.Where(col => col.Value.Count == 3))
@@ -56,20 +55,31 @@ namespace TambolaTickets
             {
                 for (int index = 0; index < 2; index++)
                 {
-                    int row;
-                    do row = random.Next(0, 3);
+                    int row, repeat = 0;
+                    do
+                    {
+                        if (repeat >= 1000) return false;
+                        row = random.Next(0, 3);
+                        repeat++;
+                    }
                     while (IsRowCompleted(row) || Entries[row][numbers.Key] != 0);
                     UpdateEntry(row, numbers.Key, numbers.Value[index]);
                 }
             }
             foreach (KeyValuePair<int, List<int>> numbers in sortedNumbers.Where(col => col.Value.Count == 1))
             {
-                int row;
-                do row = random.Next(0, 3);
+                int row, repeat = 0;
+                do
+                {
+                    if (repeat >= 1000) return false;
+                    row = random.Next(0, 3);
+                    repeat++;
+                }
                 while (IsRowCompleted(row) || Entries[row][numbers.Key] != 0);
                 UpdateEntry(row, numbers.Key, numbers.Value.First());
             }
             Sort();
+            return true;
         }
 
         private void Sort()
