@@ -1,51 +1,121 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace TambolaTickets
+﻿namespace TambolaTickets
 {
+    /// <summary>
+    /// Tambola ticket class
+    /// </summary>
     public class TambolaTicket
     {
         #region Entries
+        /// <summary>
+        /// Private two dimension array with entries data. The first array is a row and the second is a column.
+        /// </summary>
         private int[][] Entries;
 
-        public void UpdateEntry(int row, int column, int value)
+        /// <summary>
+        /// Function to update the ticket values.
+        /// </summary>
+        /// <param name="rowIndex">Row index in the Entries array.</param>
+        /// <param name="columnIndex">Column index in the Entries array.</param>
+        /// <param name="value">Value to be entered.</param>
+        public void UpdateEntry(int rowIndex, int columnIndex, int value)
         {
-            if (column < 0 || column >= 9) throw new Exception("Column index out of range");
-            if (row < 0 || row >= 3) throw new Exception("Row index out of range");
-            Entries[row][column] = value;
+            if (columnIndex < 0 || columnIndex >= _columnAmount)
+                throw new Exception("Column index out of range.");
+            if (rowIndex < 0 || rowIndex >= 3)
+                throw new Exception("Row index out of range.");
+            Entries[rowIndex][columnIndex] = value;
         }
 
+        /// <summary>
+        /// Function that returns ticket values.
+        /// </summary>
         public int[][] GetEntries() => Entries;
 
-        public int[] GetColumnValues(int column)
+        /// <summary>
+        /// Function that returns ticket column values.
+        /// </summary>
+        /// <param name="columnIndex">Column index in the Entries array.</param>
+        public int[] GetColumnValues(int columnIndex)
         {
-            if (column < 0 || column >= 9) throw new Exception("Column index out of range");
-            return Entries.Select(row => row[column]).ToArray();
+            if (columnIndex < 0 || columnIndex >= _columnAmount)
+                throw new Exception("Column index out of range.");
+            return Entries.Select(row => row[columnIndex]).ToArray();
         }
 
-        public int[] GetRowValues(int row)
+        /// <summary>
+        /// Function that returns ticket row values.
+        /// </summary>
+        /// <param name="rowIndex">Column index in the Entries array.</param>
+        /// <returns></returns>
+        public int[] GetRowValues(int rowIndex)
         {
-            if (row < 0 || row >= 3) throw new Exception("Row index out of range");
-            return Entries[row];
+            if (rowIndex < 0 || rowIndex >= 3)
+                throw new Exception("Row index out of range.");
+            return Entries[rowIndex];
         }
         #endregion Entries
 
-        private bool IsRowCompleted(int row) => GetRowValues(row).Count(x => x != 0) == 5;
+        /// <summary>
+        /// Function to check whether a row is complete.
+        /// </summary>
+        /// <param name="rowIndex">Column index in the Entries array.</param>
+        /// <returns>If the row contains 5 numbers it returns true, if not it returns false.</returns>
+        private bool IsRowCompleted(int rowIndex) => GetRowValues(rowIndex).Count(x => x != 0) == 5;
 
-        private readonly string NumberOfTicket;
+        /// <summary>
+        /// Field containing the ticket number.
+        /// </summary>
+        private readonly string _numberOfTicket;
 
-        public TambolaTicket(int numberOfTicket)
+        /// <summary>
+        /// Field containing the number of columns of the ticket.
+        /// </summary>
+        private readonly int _columnAmount;
+
+        /// <summary>
+        /// Ticket constructor assigning default values.
+        /// </summary>
+        /// <param name="numberOfTicket">Ticket number.</param>
+        /// <param name="columnAmount">Amount of columns in ticket</param>
+        public TambolaTicket(int numberOfTicket, int columnAmount)
         {
-            NumberOfTicket = numberOfTicket.ToString();
+            _numberOfTicket = numberOfTicket.ToString();
+            _columnAmount = columnAmount;
             Entries = new int[3][];
             for (int i = 0; i < 3; i++)
-                Entries[i] = new int[9];
+                Entries[i] = new int[_columnAmount];
         }
 
-        public bool InsertData(Dictionary<int, List<int>> sortedNumbers)
+        /// <summary>
+        /// Function to check whether it is possible to insert a number to a given column and row of a ticket.
+        /// </summary>
+        /// <param name="rowIndex">Row index in the Entries array.</param>
+        /// <param name="colIndex">Column index in the Entries array.</param>
+        /// <returns></returns>
+        public bool CanPlaceNumber(int rowIndex, int colIndex)
+        {
+            int count = 0;
+            for (int i = colIndex - 1; i >= 0; i--)
+            {
+                if (Entries[rowIndex][i] == 0)
+                    break;
+                count++;
+            }
+            for (int i = colIndex + 1; i < _columnAmount; i++)
+            {
+                if (Entries[rowIndex][i] == 0)
+                    break;
+                count++;
+            }
+            return count < 2;
+        }
+
+        /// <summary>
+        /// Function for inserting numbers into a ticket.
+        /// </summary>
+        /// <param name="sortedNumbers">Variable with all numbers sorted into tickets and corresponding columns.</param>
+        /// <returns>Returns true if the numbers have been successfully entered into the ticket, if not returns false.</returns>
+        private bool Insert(Dictionary<int, List<int>> sortedNumbers)
         {
             Random random = new(Guid.NewGuid().GetHashCode());
             foreach (KeyValuePair<int, List<int>> numbers in sortedNumbers.Where(col => col.Value.Count == 3))
@@ -58,11 +128,11 @@ namespace TambolaTickets
                     int row, repeat = 0;
                     do
                     {
-                        if (repeat >= 1000) return false;
+                        if (repeat >= 100) return false;
                         row = random.Next(0, 3);
                         repeat++;
                     }
-                    while (IsRowCompleted(row) || Entries[row][numbers.Key] != 0);
+                    while (IsRowCompleted(row) || Entries[row][numbers.Key] != 0 || !CanPlaceNumber(row, numbers.Key));
                     UpdateEntry(row, numbers.Key, numbers.Value[index]);
                 }
             }
@@ -71,20 +141,42 @@ namespace TambolaTickets
                 int row, repeat = 0;
                 do
                 {
-                    if (repeat >= 1000) return false;
+                    if (repeat >= 100) return false;
                     row = random.Next(0, 3);
                     repeat++;
                 }
-                while (IsRowCompleted(row) || Entries[row][numbers.Key] != 0);
+                while (IsRowCompleted(row) || Entries[row][numbers.Key] != 0 || !CanPlaceNumber(row, numbers.Key));
                 UpdateEntry(row, numbers.Key, numbers.Value.First());
             }
+            return true;
+        }
+
+        /// <summary>
+        /// Function for inserting numbers into a ticket.
+        /// </summary>
+        /// <param name="sortedNumbers">Variable with all numbers sorted into tickets and corresponding columns.</param>
+        /// <returns>Returns true if the numbers have been successfully entered into the ticket, if not returns false.</returns>
+        public bool InsertData(Dictionary<int, List<int>> sortedNumbers)
+        {
+            int repeat = 0;
+            do
+            {
+                if (repeat >= 100) return false;
+                Entries = new int[3][];
+                for (int i = 0; i < 3; i++)
+                    Entries[i] = new int[_columnAmount];
+                repeat++;
+            } while (!Insert(sortedNumbers));
             Sort();
             return true;
         }
 
+        /// <summary>
+        /// Function to sort the numbers in each column from smallest to largest.
+        /// </summary>
         private void Sort()
         {
-            for (var col = 0; col < 9; col++)
+            for (var col = 0; col < _columnAmount; col++)
             {
                 List<int> data = new();
                 for (int row = 0; row < 3; row++)
@@ -100,17 +192,20 @@ namespace TambolaTickets
             }
         }
 
+        /// <summary>
+        /// A function that displays a ticket in the console.
+        /// </summary>
         public void Display()
         {
             Console.WriteLine(new string('-', 46));
-            Console.WriteLine($"| Tambola Ticket No: {NumberOfTicket}                       |");
+            Console.WriteLine($"| Tambola Ticket No: {_numberOfTicket}                       |");
             Console.WriteLine(new string('-', 46));
             for (int i = 0; i < 3; i++)
             {
                 int[] row = GetRowValues(i);
                 string result = "|";
                 for (int j = 0; j < row.Length; j++)
-                    result += row[j] > 9 ? $" {row[j]} |" : row[j] == 0 ? "    |" : $"  {row[j]} |";
+                    result += row[j] > _columnAmount ? $" {row[j]} |" : row[j] == 0 ? "    |" : $"  {row[j]} |";
                 Console.WriteLine(result);
                 Console.WriteLine(new string('-', 46));
             }
