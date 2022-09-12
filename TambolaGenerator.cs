@@ -70,6 +70,8 @@ namespace TambolaTickets
                 case 3:
                     return false;
                 case 2:
+                    if (ticket.Any(x => x.Value.Count() == 3))
+                        return false;
                     if (columnIndex > 0 && ticket[columnIndex - 1].Count == 3)
                         return false;
                     if (columnIndex < COLUMN_AMOUNT - 1 && ticket[columnIndex + 1].Count == 3)
@@ -141,18 +143,22 @@ namespace TambolaTickets
             {
                 for (int column = 0; column < COLUMN_AMOUNT; column++)
                 {
-                    int number = AvailableNumbers[column][random.Next(0, AvailableNumbers[column].Count)];
-                    AvailableNumbers[column].Remove(number);
-                    int ticketIndex;
-                    int repeat = 0;
-                    do
+                    for (int i = 0; i < (column == COLUMN_AMOUNT - 1 ? 2 : 1); i++)
                     {
-                        if (repeat >= 100) return false;
-                        ticketIndex = random.Next(0, TICKET_AMOUNT);
-                        repeat++;
+                        if (AvailableNumbers[column].Count == 0) continue;
+                        int number = AvailableNumbers[column][random.Next(0, AvailableNumbers[column].Count)];
+                        AvailableNumbers[column].Remove(number);
+                        int ticketIndex;
+                        int repeat = 0;
+                        do
+                        {
+                            if (repeat >= 100) return false;
+                            ticketIndex = random.Next(0, TICKET_AMOUNT);
+                            repeat++;
+                        }
+                        while (!CanAddNumberToColumn(ticketIndex, column) || IsTicketDataFilled(ticketIndex));
+                        SortedNumbers[ticketIndex][column].Add(number);
                     }
-                    while (!CanAddNumberToColumn(ticketIndex, column) || IsTicketDataFilled(ticketIndex));
-                    SortedNumbers[ticketIndex][column].Add(number);
                 }
             }
             return true;
@@ -175,7 +181,11 @@ namespace TambolaTickets
                 {
                     AvailableNumbers.Add(i, new());
                     for (int j = 0; j < 10; j++)
-                        AvailableNumbers[i].Add((i * 10) + j + 1);
+                    {
+                        if (i == 0 && j == 0) continue;
+                        AvailableNumbers[i].Add((i * 10) + j);
+                    }
+                    if (i == 8) AvailableNumbers[i].Add(90);
                 }
                 Random random = new Random(Guid.NewGuid().GetHashCode());
                 for (int i = 0; i < 6; i++)
