@@ -70,7 +70,9 @@ namespace TambolaTickets
                 case 3:
                     return false;
                 case 2:
-                    if (ticket.Any(x => x.Value.Count() == 3))
+                    if (columnIndex == 0)
+                        return false;
+                    if (ticket.Any(x => x.Value.Count == 3))
                         return false;
                     if (columnIndex > 0 && ticket[columnIndex - 1].Count == 3)
                         return false;
